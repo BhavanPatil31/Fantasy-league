@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "Contest": {
+      "title": "Contest",
+      "description": "A specific tournament or league created by a user.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "creatorId"]
+    },
+    "Player": {
+      "title": "Player",
+      "description": "A player within a specific contest.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "totalScore": { "type": "integer" },
+        "lastMatchScore": { "type": "integer" },
+        "currentRank": { "type": "integer" }
+      }
+    },
+    "Match": {
+      "title": "Match",
+      "description": "A match record within a contest.",
+      "type": "object",
+      "properties": {
+        "matchNumber": { "type": "integer" },
+        "matchTitle": { "type": "string" },
+        "scores": { "type": "array" }
+      }
+    },
+    "Fixture": {
+      "title": "Fixture",
+      "description": "A scheduled match fixture that hasn't been scored yet.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title"]
+    }
+  },
+  "firestore": {
+    "/contests": {
+      "schema": "Contest",
+      "description": "Root collection for all contests."
+    },
+    "/contests/{contestId}/players": {
+      "schema": "Player",
+      "description": "Players for a specific contest."
+    },
+    "/contests/{contestId}/matches": {
+      "schema": "Match",
+      "description": "Matches for a specific contest."
+    },
+    "/contests/{contestId}/fixtures": {
+      "schema": "Fixture",
+      "description": "Pending fixtures to be scored."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Fantasy League",
+  "description": "A comprehensive fantasy sports leaderboard application for tracking player performance, automatic ranking based on match points, and detailed statistical visualizations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
