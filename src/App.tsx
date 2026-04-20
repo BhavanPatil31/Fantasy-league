@@ -62,28 +62,6 @@ function AppContent() {
     };
   }, [selectedContest, user]);
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Login />;
-  }
-
-  if (!selectedContest) {
-    return (
-      <div className="min-h-screen bg-slate-950 relative overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute top-1/2 -right-40 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none"></div>
-        <ContestSelector onSelect={setSelectedContest} />
-      </div>
-    );
-  }
-
   const tabs = [
     { id: 'dashboard', label: 'Leaderboard', icon: LayoutDashboard },
     { id: 'history', label: 'History', icon: Zap },
@@ -92,12 +70,38 @@ function AppContent() {
     { id: 'charts', label: 'Analytics', icon: BarChart3 },
   ];
 
-  const isAdmin = loginMode === 'admin' && (selectedContest.creatorId === user.uid || user.email === 'bhavanspatil2004@gmail.com');
-
+  const isAdmin = !!user && loginMode === 'admin' && (selectedContest?.creatorId === user.uid || user.email === 'bhavanspatil2004@gmail.com');
   const filteredTabs = tabs.filter(t => !t.adminOnly || isAdmin);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-purple-500/30 overflow-hidden relative">
+      <AnimatePresence mode="wait">
+        {authLoading ? (
+          <motion.div 
+            key="auth-loader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950"
+          >
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/20 mb-6 animate-pulse">
+              <Trophy className="w-6 h-6 text-white" />
+            </div>
+            <Loader2 className="w-5 h-5 text-blue-500 animate-spin mb-4" />
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">Verifying Clearance</p>
+          </motion.div>
+        ) : !user ? (
+          <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+            <Login />
+          </motion.div>
+        ) : !selectedContest ? (
+          <motion.div key="selector" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+             <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+             <div className="absolute top-1/2 -right-40 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+             <ContestSelector onSelect={setSelectedContest} />
+          </motion.div>
+        ) : (
+          <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       {/* Background Blobs */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute top-1/2 -right-40 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none"></div>
@@ -175,6 +179,9 @@ function AppContent() {
           </AnimatePresence>
         )}
       </main>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

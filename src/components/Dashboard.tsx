@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Player, Match } from '../types';
-import { TrendingUp, TrendingDown, Minus, User, Award, Hash, Zap, Trophy, ChevronLeft } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, User, Award, Hash, Zap, Trophy, ChevronLeft, Sparkles, PartyPopper } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import PlayerDetailsModal from './PlayerDetailsModal';
+import LeagueCelebration from './LeagueCelebration';
 
 interface DashboardProps {
   players: Player[];
@@ -10,14 +12,56 @@ interface DashboardProps {
   contestName: string;
 }
 
+const TOTAL_SEASON_MATCHES = 74;
+
 export default function Dashboard({ players, matches, onBack, contestName }: DashboardProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
   const topPlayer = players[0];
-  const lastMatch = matches[0];
   const totalMatches = matches.length;
+  
+  const isSeasonComplete = totalMatches >= TOTAL_SEASON_MATCHES;
+
+  // Auto-show celebration once when milestone hit (you could persist this in localstorage)
+  useMemo(() => {
+    if (isSeasonComplete) {
+      const shown = localStorage.getItem(`celebration_shown_${contestName}`);
+      if (!shown) {
+        setShowCelebration(true);
+        localStorage.setItem(`celebration_shown_${contestName}`, 'true');
+      }
+    }
+  }, [isSeasonComplete, contestName]);
 
   return (
     <div className="space-y-8">
+      {/* Season Finale Banner */}
+      {isSeasonComplete && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border border-amber-400/30 rounded-[32px] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl shadow-amber-500/10"
+        >
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://picsum.photos/seed/celebrate/1920/1080')] opacity-5 mix-blend-overlay"></div>
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="w-16 h-16 bg-amber-400 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+               <PartyPopper className="w-8 h-8 text-black" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-amber-100 uppercase italic tracking-tighter" style={{ fontFamily: 'Verdana, sans-serif' }}>Season Finale Reached</h2>
+              <p className="text-amber-400/60 text-[10px] font-black uppercase tracking-widest">All {TOTAL_SEASON_MATCHES} matches have been recorded. A champion has risen.</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setShowCelebration(true)}
+            className="relative z-10 bg-amber-400 hover:bg-amber-300 text-black px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg hover:scale-105 active:scale-95 flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Watch Hall of Fame
+          </button>
+        </motion.div>
+      )}
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -156,6 +200,17 @@ export default function Dashboard({ players, matches, onBack, contestName }: Das
           onClose={() => setSelectedPlayer(null)} 
         />
       )}
+
+      {/* Hall of Fame Celebration */}
+      <AnimatePresence>
+        {showCelebration && (
+          <LeagueCelebration 
+            players={players} 
+            matches={matches} 
+            onClose={() => setShowCelebration(false)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Player, Match, Fixture } from '../types';
-import { Save, AlertCircle, CheckCircle2, UserPlus, Zap, Trash2 } from 'lucide-react';
+import { Save, AlertCircle, CheckCircle2, UserPlus, Zap, Trash2, Swords } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, writeBatch, serverTimestamp, onSnapshot, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion } from 'motion/react';
-import { calculateRankScores } from '../lib/scoreUtils';
+import { calculateRankScores } from '../lib/scoreUtils.ts';
+import { IPL_TEAMS } from '../constants';
 
 interface ScoreEntryProps {
   players: Player[];
@@ -24,6 +25,19 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
   const [newPlayerName, setNewPlayerName] = useState('');
   
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null);
+  const [team1, setTeam1] = useState('');
+  const [team2, setTeam2] = useState('');
+
+  // Update matchTitle whenever team1 or team2 changes
+  useEffect(() => {
+    if (team1 && team2) {
+      setMatchTitle(`${team1} vs ${team2}`);
+    } else if (team1) {
+      setMatchTitle(team1);
+    } else if (team2) {
+      setMatchTitle(team2);
+    }
+  }, [team1, team2]);
 
   const handleConfirmDeleteMatch = async () => {
     if (!matchToDelete) return;
@@ -75,7 +89,18 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
 
   const handleSelectMatch = (match: Match) => {
     setSelectedMatchId(match.id);
-    setMatchTitle(match.matchTitle || `Match ${match.matchNumber}`);
+    const title = match.matchTitle || `Match ${match.matchNumber}`;
+    setMatchTitle(title);
+    
+    // Try to parse teams from title
+    if (title.includes(' vs ')) {
+      const [t1, t2] = title.split(' vs ');
+      setTeam1(t1);
+      setTeam2(t2);
+    } else {
+      setTeam1('');
+      setTeam2('');
+    }
     
     // Map existing scores to the points state
     const points: Record<string, number> = {};
@@ -88,11 +113,13 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
   const handleReset = () => {
     setSelectedMatchId(null);
     setMatchTitle('');
+    setTeam1('');
+    setTeam2('');
     setPlayerPoints({});
   };
 
   const handlePointsChange = (playerId: string, value: string) => {
-    const points = parseInt(value) || 0;
+    const points = parseFloat(value) || 0;
     setPlayerPoints(prev => ({ ...prev, [playerId]: points }));
   };
 
@@ -243,17 +270,71 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
             )}
           </div>
           
-          <div className="pt-8 border-t border-white/5">
-            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
-              {selectedMatchId ? 'Selected Match Fixture' : 'Enter Match Fixture'}
+          <div className="pt-8 border-t border-white/5 space-y-6">
+            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+              {selectedMatchId ? 'Selected Match Fixture' : 'Identify Matchup'}
             </h4>
-            <input
-              type="text"
-              value={matchTitle}
-              onChange={(e) => setMatchTitle(e.target.value)}
-              placeholder="Match Name (e.g. MI vs KKR)"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 placeholder:text-slate-700 focus:outline-none focus:border-blue-500/50 transition-all text-sm font-bold text-slate-100"
-            />
+            
+            <div className="grid grid-cols-1 sm:grid-cols-11 items-center gap-4">
+              <div className="sm:col-span-5">
+                <label className="block text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold px-1">Team 01</label>
+                <div className="relative group">
+                  <select
+                    value={team1}
+                    onChange={(e) => setTeam1(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 placeholder:text-slate-700 focus:outline-none focus:border-blue-500/50 transition-all text-sm font-bold text-slate-100 appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-slate-900 text-slate-500">Pick Team</option>
+                    {IPL_TEAMS.map(team => (
+                      <option key={team} value={team} disabled={team === team2} className="bg-slate-900 text-slate-100">
+                        {team}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-blue-400 transition-colors">
+                    <Zap className="w-3 h-3" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="sm:col-span-1 flex justify-center opacity-40">
+                <Swords className="w-5 h-5 text-slate-400 mt-6" />
+              </div>
+
+              <div className="sm:col-span-11 sm:hidden h-px bg-white/5"></div>
+
+              <div className="sm:col-span-5">
+                <label className="block text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold px-1">Team 02</label>
+                <div className="relative group">
+                  <select
+                    value={team2}
+                    onChange={(e) => setTeam2(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 placeholder:text-slate-700 focus:outline-none focus:border-blue-500/50 transition-all text-sm font-bold text-slate-100 appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-slate-900 text-slate-500">Pick Team</option>
+                    {IPL_TEAMS.map(team => (
+                      <option key={team} value={team} disabled={team === team1} className="bg-slate-900 text-slate-100">
+                        {team}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-blue-400 transition-colors">
+                    <Zap className="w-3 h-3" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="block text-[9px] text-slate-500 uppercase tracking-widest px-1 font-bold">Match Identifier</label>
+              <input
+                type="text"
+                value={matchTitle}
+                onChange={(e) => setMatchTitle(e.target.value)}
+                placeholder="Match Name (e.g. MI vs KKR)"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 placeholder:text-slate-700 focus:outline-none focus:border-blue-500/50 transition-all text-sm font-bold text-slate-100"
+              />
+            </div>
           </div>
         </div>
 
@@ -297,6 +378,7 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
               <div className="col-span-4">
                 <input
                   type="number"
+                  step="any"
                   value={playerPoints[player.id] || ''}
                   onChange={(e) => handlePointsChange(player.id, e.target.value)}
                   placeholder="0"

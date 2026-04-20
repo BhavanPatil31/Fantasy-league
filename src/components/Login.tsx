@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Trophy, Shield, User, ArrowRight, Zap, Target } from 'lucide-react';
+import { Trophy, Shield, User, ArrowRight, Zap, Target, AlertTriangle, XCircle } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, error, clearError } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
@@ -32,6 +32,43 @@ export default function Login() {
             Choose your gateway to the premier DBC gaming arena
           </p>
         </motion.div>
+
+        {/* Global Error Banner */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ height: 0, opacity: 0, y: -10 }}
+              animate={{ height: 'auto', opacity: 1, y: 0 }}
+              exit={{ height: 0, opacity: 0, y: -10 }}
+              className="max-w-xl mx-auto w-full mb-8"
+            >
+              <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 flex items-start gap-4 shadow-xl">
+                 <div className="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-rose-500" />
+                 </div>
+                 <div className="flex-1 min-w-0">
+                    <p className="text-rose-200 text-xs font-bold uppercase tracking-widest mb-1 italic">Security / Auth Warning</p>
+                    <p className="text-rose-400/80 text-[11px] font-medium leading-relaxed mb-3">
+                      {error}
+                    </p>
+                    <button 
+                      onClick={() => signIn('spectator', true)}
+                      className="text-[9px] font-black uppercase tracking-widest bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 px-3 py-1.5 rounded-lg border border-rose-500/30 transition-all flex items-center gap-2"
+                    >
+                      <Zap className="w-3 h-3" />
+                      Try Redirect Login (Fallback)
+                    </button>
+                 </div>
+                 <button 
+                  onClick={clearError}
+                  className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                 >
+                    <XCircle className="w-4 h-4 text-slate-500" />
+                 </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Dual Login Panels */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">

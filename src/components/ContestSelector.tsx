@@ -92,8 +92,14 @@ export default function ContestSelector({ onSelect }: ContestSelectorProps) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Create Contest Card - ADMIN ONLY */}
-        {isAdminMode && (
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-48 bg-white/5 rounded-[32px] animate-pulse border border-white/5"></div>
+          ))
+        ) : (
+          <>
+            {/* Create Contest Card - ADMIN ONLY */}
+            {isAdminMode && (
           <button 
             onClick={() => setShowCreate(true)}
             className="group relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[32px] p-8 flex flex-col items-center justify-center gap-4 hover:bg-white/[0.08] hover:border-blue-500/50 transition-all border-dashed"
@@ -138,6 +144,8 @@ export default function ContestSelector({ onSelect }: ContestSelectorProps) {
             </p>
           </motion.div>
         ))}
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
