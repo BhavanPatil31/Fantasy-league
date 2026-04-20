@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Shield, User, ArrowRight, Zap, Target, AlertTriangle, XCircle } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 

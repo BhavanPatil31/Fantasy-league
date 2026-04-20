@@ -4,7 +4,7 @@ import { Save, AlertCircle, CheckCircle2, UserPlus, Zap, Trash2, Swords } from '
 import { collection, addDoc, updateDoc, doc, writeBatch, serverTimestamp, onSnapshot, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion } from 'motion/react';
-import { calculateRankScores } from '../lib/scoreUtils.ts';
+import { calculateRankScores } from '../lib/scoreUtils';
 import { IPL_TEAMS } from '../constants';
 
 interface ScoreEntryProps {
