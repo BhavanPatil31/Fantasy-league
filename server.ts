@@ -1,7 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import { calculateRankScores } from "./src/lib/scoreUtils";
+import { calculateRankScores } from "./src/lib/scoreUtils.ts";
 
 async function startServer() {
   const app = express();
