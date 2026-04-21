@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Player, Match, Fixture } from '../types';
 import { Save, AlertCircle, CheckCircle2, UserPlus, Zap, Trash2, Swords } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc, writeBatch, serverTimestamp, onSnapshot, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, writeBatch, serverTimestamp, onSnapshot, query, orderBy, deleteDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
-import { motion } from 'motion/react';
-import { calculateRankScores } from '../lib/scoreUtils';
+import { motion, AnimatePresence } from 'motion/react';
+import { calculateRankScores, PlayerScore } from '../lib/scoreUtils';
 import { IPL_TEAMS } from '../constants';
 
 interface ScoreEntryProps {
@@ -25,6 +25,7 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
   const [newPlayerName, setNewPlayerName] = useState('');
   
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null);
+  const [recalculating, setRecalculating] = useState(false);
   const [team1, setTeam1] = useState('');
   const [team2, setTeam2] = useState('');
 
@@ -123,6 +124,74 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
     setPlayerPoints(prev => ({ ...prev, [playerId]: points }));
   };
 
+  const handleRecalculateAll = async () => {
+    if (!window.confirm('This will reset and re-calculate all player totals from match history to fix any scoring errors. Proceed?')) return;
+    
+    setRecalculating(true);
+    setError(null);
+    try {
+      // 1. Fetch all matches for this contest
+      const matchesRef = collection(db, `contests/${contestId}/matches`);
+      const matchesSnap = await getDocs(query(matchesRef, orderBy('matchNumber', 'asc')));
+      const allMatches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
+
+      // 2. Clear current player totals
+      const playerTotals: Record<string, number> = {};
+      const playerLastScores: Record<string, number> = {};
+      const playerLastRanks: Record<string, number> = {};
+      
+      players.forEach(p => {
+        playerTotals[p.id] = 0;
+        playerLastScores[p.id] = 0;
+        playerLastRanks[p.id] = 0;
+      });
+
+      // 3. Sequential recalculation for each match
+      const batch = writeBatch(db);
+      
+      for (const match of allMatches) {
+        // We use the scores as they were saved, but re-run the ranking logic
+        const scoresToProcess: PlayerScore[] = match.scores.map(s => ({
+          playerId: s.playerId,
+          playerName: s.playerName,
+          pointsScored: s.pointsScored
+        }));
+
+        const newRankings = calculateRankScores(scoresToProcess);
+        
+        // Update the match document itself if it was wrong before
+        const matchRef = doc(db, `contests/${contestId}/matches`, match.id);
+        batch.update(matchRef, { scores: newRankings });
+
+        // Accumulate player totals
+        newRankings.forEach(res => {
+          playerTotals[res.playerId] += res.rankScore;
+          playerLastScores[res.playerId] = res.rankScore;
+          playerLastRanks[res.playerId] = res.actualRank;
+        });
+      }
+
+      // 4. Update all players in one batch
+      players.forEach(p => {
+        const pRef = doc(db, `contests/${contestId}/players`, p.id);
+        batch.update(pRef, {
+          totalScore: playerTotals[p.id],
+          lastMatchScore: playerLastScores[p.id],
+          currentRank: playerLastRanks[p.id]
+        });
+      });
+
+      await batch.commit();
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      console.error("Recalculation error:", err);
+      setError("Failed to recalculate: " + err.message);
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!matchTitle.trim()) {
       setError('Please enter a match title (e.g. CSK vs RCB)');
@@ -219,19 +288,32 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
 
         <div className="mb-10 p-8 bg-white/5 backdrop-blur-md border border-white/10 rounded-[32px] relative overflow-hidden">
           <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/5 blur-[40px] -ml-16 -mt-16"></div>
-          <div className="flex justify-between items-center mb-6 relative">
+          <div className="flex items-center justify-between gap-4 mb-6 relative">
             <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-2">
               <Zap className="w-3 h-3" />
               Match Results
             </h3>
-            {selectedMatchId && (
-              <button 
-                onClick={handleReset}
-                className="text-[10px] font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-widest"
-              >
-                Reset Form
-              </button>
-            )}
+            <div className="flex items-center gap-6">
+              {matches.length > 0 && (
+                <button 
+                  onClick={handleRecalculateAll}
+                  disabled={recalculating}
+                  className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-emerald-400 uppercase tracking-widest transition-all disabled:opacity-50"
+                  title="Recalculate all scores from history to fix logic changes"
+                >
+                  {recalculating ? <div className="w-3 h-3 border-2 border-slate-500 border-t-emerald-400 rounded-full animate-spin" /> : <Zap className="w-3 h-3" />}
+                  Fix Prev Data
+                </button>
+              )}
+              {selectedMatchId && (
+                <button 
+                  onClick={handleReset}
+                  className="text-[10px] font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-widest"
+                >
+                  Reset Form
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
