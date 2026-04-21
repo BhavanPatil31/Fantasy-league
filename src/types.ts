@@ -12,6 +12,7 @@ export interface MatchScore {
   playerName: string;
   pointsScored: number; // The actual points entered (e.g. 100)
   rankScore: number;   // The assigned points (e.g. 14)
+  actualRank: number;  // Position in that specific match
 }
 
 export interface Match {

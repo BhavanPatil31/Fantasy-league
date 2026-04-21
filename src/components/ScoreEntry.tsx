@@ -148,8 +148,26 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
 
       // 3. Sequential recalculation for each match
       const batch = writeBatch(db);
+      const playerPreviousRanks: Record<string, number> = {};
       
-      for (const match of allMatches) {
+      for (let i = 0; i < allMatches.length; i++) {
+        const match = allMatches[i];
+        
+        // Before applying the VERY LAST match, capture current global ranks for trend
+        if (i === allMatches.length - 1 && allMatches.length > 0) {
+          const sortedPlayers = Object.keys(playerTotals)
+            .map(id => ({ id, score: playerTotals[id] }))
+            .sort((a, b) => b.score - a.score);
+            
+          let currentRank = 1;
+          for (let k = 0; k < sortedPlayers.length; k++) {
+            if (k > 0 && sortedPlayers[k].score < sortedPlayers[k-1].score) {
+              currentRank = k + 1;
+            }
+            playerPreviousRanks[sortedPlayers[k].id] = currentRank;
+          }
+        }
+
         // We use the scores as they were saved, but re-run the ranking logic
         const scoresToProcess: PlayerScore[] = match.scores.map(s => ({
           playerId: s.playerId,
@@ -177,6 +195,7 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
         batch.update(pRef, {
           totalScore: playerTotals[p.id],
           lastMatchScore: playerLastScores[p.id],
+          previousRank: playerPreviousRanks[p.id] || 0,
           currentRank: playerLastRanks[p.id]
         });
       });
@@ -221,6 +240,18 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
       const batch = writeBatch(db);
       const existingMatch = selectedMatchId ? matches.find(m => m.id === selectedMatchId) : null;
       
+      // Calculate current global ranks for trend (only if it's a new match)
+      const currentGlobalRanks: Record<string, number> = {};
+      if (!selectedMatchId) {
+        let currentRank = 1;
+        for (let k = 0; k < players.length; k++) {
+          if (k > 0 && players[k].totalScore < players[k-1].totalScore) {
+            currentRank = k + 1;
+          }
+          currentGlobalRanks[players[k].id] = currentRank;
+        }
+      }
+
       // Update players
       processedResults.forEach((res: any) => {
         const playerRef = doc(db, `contests/${contestId}/players`, res.playerId);
@@ -233,12 +264,19 @@ export default function ScoreEntry({ players, matches, contestId }: ScoreEntryPr
             if (oldScoreRecord) oldRankScore = oldScoreRecord.rankScore;
           }
 
-          batch.update(playerRef, {
+          const updateData: any = {
             totalScore: Math.max(0, player.totalScore - oldRankScore + res.rankScore),
             lastMatchScore: res.rankScore,
-            previousRank: player.currentRank || 0,
             currentRank: res.actualRank
-          });
+          };
+
+          // Only update previousRank if this is a NEW match
+          // Store the global rank as it is RIGHT NOW (before the update)
+          if (!selectedMatchId) {
+            updateData.previousRank = currentGlobalRanks[res.playerId] || 0;
+          }
+
+          batch.update(playerRef, updateData);
         }
       });
 

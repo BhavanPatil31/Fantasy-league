@@ -115,7 +115,6 @@ export default function Dashboard({ players, matches, onBack, contestName }: Das
             <tbody className="divide-y divide-white/5">
               {players.map((player, index) => {
                 const rank = index + 1;
-                const trend = player.previousRank ? player.previousRank - rank : 0;
                 const isTop = rank === 1;
                 
                 // Get current (latest) and last (previous) match results
@@ -124,6 +123,12 @@ export default function Dashboard({ players, matches, onBack, contestName }: Das
                 
                 const currentMatchData = currentMatch?.scores.find(s => s.playerId === player.id);
                 const lastMatchData = lastMatch?.scores.find(s => s.playerId === player.id);
+
+                // Trend logic: Comparison between current match points and last match points
+                const currentPts = currentMatchData?.rankScore || 0;
+                const lastPts = lastMatchData?.rankScore || 0;
+                const trend = currentPts - lastPts;
+                const isNew = !lastMatchData && currentMatchData;
 
                 return (
                   <tr 
@@ -154,11 +159,19 @@ export default function Dashboard({ players, matches, onBack, contestName }: Das
                       </div>
                     </td>
                     <td className="py-4 text-center">
-                      <div className="flex items-center justify-center gap-1 font-mono text-xs">
-                        {trend > 0 ? (
-                          <span className="text-emerald-400">▲ {trend}</span>
+                      <div className="flex items-center justify-center gap-1 font-mono text-[10px] font-bold">
+                        {isNew ? (
+                          <span className="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded text-[8px] tracking-widest uppercase">New</span>
+                        ) : trend > 0 ? (
+                          <span className="text-emerald-400 flex items-center gap-0.5">
+                            <TrendingUp className="w-3 h-3" />
+                            {trend.toFixed(1).replace('.0', '')}
+                          </span>
                         ) : trend < 0 ? (
-                          <span className="text-rose-400">▼ {Math.abs(trend)}</span>
+                          <span className="text-rose-400 flex items-center gap-0.5">
+                            <TrendingDown className="w-3 h-3" />
+                            {Math.abs(trend).toFixed(1).replace('.0', '')}
+                          </span>
                         ) : (
                           <span className="text-slate-500">—</span>
                         )}

@@ -1,7 +1,3 @@
-import { GoogleGenAI, Type } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export interface ComparisonInsights {
   trends: string;
   consistency: string;
@@ -18,53 +14,36 @@ export async function getPlayerInsights(
   gap: number,
   neededAvg: string
 ): Promise<ComparisonInsights> {
-  const prompt = `
-    Analyze the following fantasy league performance for two players: ${playerAName} and ${playerBName}.
-    
-    ${playerAName} History (last few matches): ${historyA.join(', ')}
-    ${playerBName} History (last few matches): ${historyB.join(', ')}
-    
-    Current Gap: ${gap} points
-    Matches Remaining: ${matchesRemaining}
-    Average points per match needed by trailing player to catch up: ${neededAvg}
-    
-    Provide strategic insights in a JSON format with the following fields:
-    - trends: A brief analysis of their recent performance trends.
-    - consistency: A comparison of their scoring stability.
-    - projection: A logical projection for the remaining ${matchesRemaining} matches.
-    - summary: A punchy, competitive summary of the showdown.
-    
-    Keep the tone professional yet competitive for a fantasy league setting.
-  `;
-
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            trends: { type: Type.STRING },
-            consistency: { type: Type.STRING },
-            projection: { type: Type.STRING },
-            summary: { type: Type.STRING },
-          },
-          required: ["trends", "consistency", "projection", "summary"],
-        },
+    const response = await fetch('/api/insights', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        playerAName,
+        playerBName,
+        historyA,
+        historyB,
+        matchesRemaining,
+        gap,
+        neededAvg
+      }),
     });
 
-    const result = JSON.parse(response.text || "{}");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
     return result as ComparisonInsights;
   } catch (error) {
-    console.error("Error generating insights:", error);
+    console.error("Error generating insights via API:", error);
     return {
-      trends: "Analysis unavailable. Performance data syncing...",
-      consistency: "Stability metrics pending further matches.",
-      projection: "Outlook uncertain until next fixture results.",
-      summary: "Showdown in progress. Strategic updates to follow."
+      trends: "Analysis currently offline. Our analysts are checking the stats.",
+      consistency: "Stability metrics are being recalculated for this matchup.",
+      projection: "Outlook data pending. Check back after the next match.",
+      summary: "Showdown live. Strategic insights are arriving momentarily."
     };
   }
 }
