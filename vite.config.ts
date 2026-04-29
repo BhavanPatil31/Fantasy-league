@@ -9,6 +9,13 @@ export default defineConfig(({mode}) => {
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.NEXT_PUBLIC_KEY_API_KEY': JSON.stringify(env.NEXT_PUBLIC_KEY_API_KEY),
+      'process.env.NEXT_PUBLIC_KEY_AUTH_DOMAIN': JSON.stringify(env.NEXT_PUBLIC_KEY_AUTH_DOMAIN),
+      'process.env.NEXT_PUBLIC_KEY_PROJECT_ID': JSON.stringify(env.NEXT_PUBLIC_KEY_PROJECT_ID),
+      'process.env.NEXT_PUBLIC_KEY_STORAGE_BUCKET': JSON.stringify(env.NEXT_PUBLIC_KEY_STORAGE_BUCKET),
+      'process.env.NEXT_PUBLIC_KEY_MESSAGING_SENDER_ID': JSON.stringify(env.NEXT_PUBLIC_KEY_MESSAGING_SENDER_ID),
+      'process.env.NEXT_PUBLIC_KEY_APP_ID': JSON.stringify(env.NEXT_PUBLIC_KEY_APP_ID),
+      'process.env.NEXT_PUBLIC_KEY_DATABASE_ID': JSON.stringify(env.NEXT_PUBLIC_KEY_DATABASE_ID),
     },
     resolve: {
       alias: {

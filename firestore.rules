@@ -27,26 +27,23 @@ service cloud.firestore {
     }
 
     match /contests/{contestId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.creatorId == request.auth.uid || isGlobalAdmin());
       allow delete: if isSignedIn() && (resource.data.creatorId == request.auth.uid || isGlobalAdmin());
       
       match /players/{playerId} {
-        allow get: if isSignedIn();
-        allow list: if isSignedIn();
+        allow read: if isSignedIn();
         allow write: if isContestAdmin(contestId);
       }
 
       match /matches/{matchId} {
-        allow get: if isSignedIn();
-        allow list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create, update, delete: if isContestAdmin(contestId);
       }
 
       match /fixtures/{fixtureId} {
-        allow get: if isSignedIn();
-        allow list: if isSignedIn();
+        allow read: if isSignedIn();
         allow write: if isContestAdmin(contestId);
       }
     }

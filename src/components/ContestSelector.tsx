@@ -27,10 +27,10 @@ export default function ContestSelector({ onSelect }: ContestSelectorProps) {
   const isAdminMode = loginMode === 'admin';
 
   useEffect(() => {
+    if (!user) return;
+
     // If Admin mode, only show my contests. If Spectator mode, show everything.
-    const q = isAdminMode 
-      ? query(collection(db, 'contests'), orderBy('createdAt', 'desc')) // Will filter in JS to keep it simple or use where
-      : query(collection(db, 'contests'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'contests'), orderBy('createdAt', 'desc'));
       
     const unsub = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Contest));
@@ -43,7 +43,12 @@ export default function ContestSelector({ onSelect }: ContestSelectorProps) {
       setContests(filteredList);
       setLoading(false);
     }, (error) => {
-      console.error("Contest listener error:", error);
+      console.error("Contest listener error:", {
+        code: error.code,
+        message: error.message,
+        userId: user?.uid,
+        email: user?.email
+      });
     });
     return unsub;
   }, [isAdminMode, user]);
@@ -82,7 +87,7 @@ export default function ContestSelector({ onSelect }: ContestSelectorProps) {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10 shadow-lg">
-            <img src={user?.photoURL || ''} alt="" className="w-6 h-6 rounded-full border border-white/20" />
+            <img src={user?.photoURL || null} alt="" className="w-6 h-6 rounded-full border border-white/20" />
             <span className="text-xs font-bold text-slate-300">{user?.displayName?.split(' ')[0]}</span>
           </div>
           <button onClick={logOut} className="p-2.5 bg-rose-500/10 text-rose-400 rounded-full hover:bg-rose-500 hover:text-white transition-all">
