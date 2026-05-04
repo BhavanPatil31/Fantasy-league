@@ -1,7 +1,7 @@
 import React from 'react';
 import { Player, Match } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, TrendingUp, Award, Zap, Activity } from 'lucide-react';
+import { X, TrendingUp, Award, Zap, Activity, Trophy } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface PlayerDetailsModalProps {
@@ -28,6 +28,7 @@ export default function PlayerDetailsModal({ player, matches, onClose }: PlayerD
   const totalPoints = history.reduce((acc, h) => acc + h.points, 0);
   const avgPoints = history.length ? Math.round(totalPoints / history.length) : 0;
   const bestPoints = history.length ? Math.max(...history.map(h => h.points)) : 0;
+  const perfectScores = history.filter(h => h.rankPoints >= 14).length;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl">
@@ -72,6 +73,7 @@ export default function PlayerDetailsModal({ player, matches, onClose }: PlayerD
                     { label: 'Total Points', value: totalPoints, icon: Activity, color: 'text-blue-400' },
                     { label: 'Match Average', value: avgPoints, icon: Zap, color: 'text-purple-400' },
                     { label: 'Personal Best', value: bestPoints, icon: Award, color: 'text-amber-400' },
+                    { label: 'Perfect 14s', value: perfectScores, icon: Trophy, color: 'text-emerald-400' },
                   ].map((stat, idx) => (
                     <div key={idx} className="bg-white/5 border border-white/5 rounded-3xl p-6">
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{stat.label}</p>
@@ -197,9 +199,14 @@ export default function PlayerDetailsModal({ player, matches, onClose }: PlayerD
                       </thead>
                       <tbody className="divide-y divide-white/5">
                         {[...history].reverse().map((h, i) => (
-                          <tr key={i} className="group hover:bg-white/[0.02] transition-colors">
+                          <tr key={i} className={`group hover:bg-white/[0.02] transition-colors ${h.rankPoints >= 14 ? 'bg-emerald-500/5' : ''}`}>
                             <td className="py-4 px-4 text-xs font-mono text-slate-500">{h.date}</td>
-                            <td className="py-4 text-sm font-bold text-slate-200">{h.matchName}</td>
+                            <td className="py-4 text-sm font-bold text-slate-200">
+                              <div className="flex items-center gap-2">
+                                {h.matchName}
+                                {h.rankPoints >= 14 && <Trophy className="w-3 h-3 text-amber-400" />}
+                              </div>
+                            </td>
                             <td className="py-4 text-right font-mono font-bold text-blue-400">{h.points}</td>
                             <td className="py-4 px-4 text-right font-mono font-bold text-emerald-400">+{h.rankPoints}</td>
                           </tr>
